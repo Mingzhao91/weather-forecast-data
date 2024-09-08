@@ -1,6 +1,8 @@
 import streamlit as st
 import plotly.express as px
+from backend import get_data
 
+# Add title, text input, slider, selectbox, and subheader
 st.title("Weather Forecast for the Next Days")
 place = st.text_input("Place: ")
 days = st.slider("Forecast Days",
@@ -11,15 +13,28 @@ option = st.selectbox("Select data to view",
                       ("Temperature", "Sky"))
 st.subheader(f"{option} for the next {days} days in {place}")
 
-def get_data(days):
-    dates = ["2025-25-08", "2025-26-08", "2025-27-08", "2025-28-08", "2025-29-08"]
-    temperatures = [11,15,12,18,22]
-    temperatures = [days * i for i in temperatures]
+if place:
+    # Get the temperature/sky data
 
-    return dates, temperatures
+    try:
+        filtered_data = get_data(place, days)
 
+        if option == "Temperature":
+            # Create a temperature plot
+            temperatures = [dict["main"]["temp"] / 10 for dict in filtered_data]
+            dates = [dict["dt_txt"] for dict in filtered_data]
+            figure = px.line(x=dates, y=temperatures, labels={"x": "Date", "y": "Temperature (C)"})
+            st.plotly_chart(figure)
 
-d, t = get_data(days)
+        if option == "Sky":
+            images = {"Clear": "images/clear.png",
+                      "Clouds": "images/cloud.png",
+                      "Rain": "images/rain.png",
+                      "Snow": "images/snow.png",}
+            sky_conditions = [dict["weather"][0]["main"] for dict in filtered_data]
+            image_paths = [images[condition] for condition in sky_conditions]
+            st.image(image_paths, width=115)
 
-figure = px.line(x=d, y=t, labels={"x": "Date", "y": "Temperature (C)"})
-st.plotly_chart(figure)
+    except KeyError:
+        st.write("That place doesn't exist")
+
